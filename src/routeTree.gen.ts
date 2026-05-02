@@ -9,8 +9,56 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SdgRouteImport } from './routes/sdg'
+import { Route as ResultsRouteImport } from './routes/results'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as AnalyzeRouteImport } from './routes/analyze'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SdgRoute = SdgRouteImport.update({
+  id: '/sdg',
+  path: '/sdg',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsRoute = ResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyzeRoute = AnalyzeRouteImport.update({
+  id: '/analyze',
+  path: '/analyze',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +67,144 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/analyze': typeof AnalyzeRoute
+  '/faq': typeof FaqRoute
+  '/history': typeof HistoryRoute
+  '/library': typeof LibraryRoute
+  '/profile': typeof ProfileRoute
+  '/results': typeof ResultsRoute
+  '/sdg': typeof SdgRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/analyze': typeof AnalyzeRoute
+  '/faq': typeof FaqRoute
+  '/history': typeof HistoryRoute
+  '/library': typeof LibraryRoute
+  '/profile': typeof ProfileRoute
+  '/results': typeof ResultsRoute
+  '/sdg': typeof SdgRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/analyze': typeof AnalyzeRoute
+  '/faq': typeof FaqRoute
+  '/history': typeof HistoryRoute
+  '/library': typeof LibraryRoute
+  '/profile': typeof ProfileRoute
+  '/results': typeof ResultsRoute
+  '/sdg': typeof SdgRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/analyze'
+    | '/faq'
+    | '/history'
+    | '/library'
+    | '/profile'
+    | '/results'
+    | '/sdg'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/analyze'
+    | '/faq'
+    | '/history'
+    | '/library'
+    | '/profile'
+    | '/results'
+    | '/sdg'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/analyze'
+    | '/faq'
+    | '/history'
+    | '/library'
+    | '/profile'
+    | '/results'
+    | '/sdg'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AnalyzeRoute: typeof AnalyzeRoute
+  FaqRoute: typeof FaqRoute
+  HistoryRoute: typeof HistoryRoute
+  LibraryRoute: typeof LibraryRoute
+  ProfileRoute: typeof ProfileRoute
+  ResultsRoute: typeof ResultsRoute
+  SdgRoute: typeof SdgRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sdg': {
+      id: '/sdg'
+      path: '/sdg'
+      fullPath: '/sdg'
+      preLoaderRoute: typeof SdgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results': {
+      id: '/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analyze': {
+      id: '/analyze'
+      path: '/analyze'
+      fullPath: '/analyze'
+      preLoaderRoute: typeof AnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +217,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AnalyzeRoute: AnalyzeRoute,
+  FaqRoute: FaqRoute,
+  HistoryRoute: HistoryRoute,
+  LibraryRoute: LibraryRoute,
+  ProfileRoute: ProfileRoute,
+  ResultsRoute: ResultsRoute,
+  SdgRoute: SdgRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

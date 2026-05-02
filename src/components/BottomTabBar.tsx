@@ -3,9 +3,9 @@ import { Home, Camera, History, User } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", Icon: Home, exact: true },
-  { to: "/analyze", label: "Analyze", Icon: Camera },
-  { to: "/history", label: "History", Icon: History },
-  { to: "/profile", label: "Profile", Icon: User },
+  { to: "/analyze", label: "Analyze", Icon: Camera, exact: false },
+  { to: "/history", label: "History", Icon: History, exact: false },
+  { to: "/profile", label: "Profile", Icon: User, exact: false },
 ] as const;
 
 export function BottomTabBar() {
