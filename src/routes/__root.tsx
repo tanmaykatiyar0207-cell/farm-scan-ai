@@ -3,6 +3,7 @@ import appCss from "../styles.css?url";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { BottomTabBar } from "@/components/BottomTabBar";
+import "@/lib/i18n";
 
 function NotFoundComponent() {
   return (

@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Home, Camera, History, User } from "lucide-react";
+import { Home, Camera, History, User, Landmark } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", Icon: Home, exact: true },
   { to: "/analyze", label: "Analyze", Icon: Camera, exact: false },
+  { to: "/schemes", label: "Schemes", Icon: Landmark, exact: false },
   { to: "/history", label: "History", Icon: History, exact: false },
   { to: "/profile", label: "Profile", Icon: User, exact: false },
 ] as const;
@@ -11,7 +12,7 @@ const items = [
 export function BottomTabBar() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-md md:hidden">
-      <ul className="mx-auto grid max-w-md grid-cols-4">
+      <ul className="mx-auto grid max-w-md grid-cols-5">
         {items.map(({ to, label, Icon, exact }) => (
           <li key={to}>
             <Link

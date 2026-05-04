@@ -10,8 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SdgRouteImport } from './routes/sdg'
+import { Route as SchemesRouteImport } from './routes/schemes'
 import { Route as ResultsRouteImport } from './routes/results'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as MandiRouteImport } from './routes/mandi'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -24,6 +28,11 @@ const SdgRoute = SdgRouteImport.update({
   path: '/sdg',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SchemesRoute = SchemesRouteImport.update({
+  id: '/schemes',
+  path: '/schemes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultsRoute = ResultsRouteImport.update({
   id: '/results',
   path: '/results',
@@ -32,6 +41,21 @@ const ResultsRoute = ResultsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MandiRoute = MandiRouteImport.update({
+  id: '/mandi',
+  path: '/mandi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -72,8 +96,12 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/history': typeof HistoryRoute
   '/library': typeof LibraryRoute
+  '/login': typeof LoginRoute
+  '/mandi': typeof MandiRoute
+  '/pricing': typeof PricingRoute
   '/profile': typeof ProfileRoute
   '/results': typeof ResultsRoute
+  '/schemes': typeof SchemesRoute
   '/sdg': typeof SdgRoute
 }
 export interface FileRoutesByTo {
@@ -83,8 +111,12 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/history': typeof HistoryRoute
   '/library': typeof LibraryRoute
+  '/login': typeof LoginRoute
+  '/mandi': typeof MandiRoute
+  '/pricing': typeof PricingRoute
   '/profile': typeof ProfileRoute
   '/results': typeof ResultsRoute
+  '/schemes': typeof SchemesRoute
   '/sdg': typeof SdgRoute
 }
 export interface FileRoutesById {
@@ -95,8 +127,12 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/history': typeof HistoryRoute
   '/library': typeof LibraryRoute
+  '/login': typeof LoginRoute
+  '/mandi': typeof MandiRoute
+  '/pricing': typeof PricingRoute
   '/profile': typeof ProfileRoute
   '/results': typeof ResultsRoute
+  '/schemes': typeof SchemesRoute
   '/sdg': typeof SdgRoute
 }
 export interface FileRouteTypes {
@@ -108,8 +144,12 @@ export interface FileRouteTypes {
     | '/faq'
     | '/history'
     | '/library'
+    | '/login'
+    | '/mandi'
+    | '/pricing'
     | '/profile'
     | '/results'
+    | '/schemes'
     | '/sdg'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -119,8 +159,12 @@ export interface FileRouteTypes {
     | '/faq'
     | '/history'
     | '/library'
+    | '/login'
+    | '/mandi'
+    | '/pricing'
     | '/profile'
     | '/results'
+    | '/schemes'
     | '/sdg'
   id:
     | '__root__'
@@ -130,8 +174,12 @@ export interface FileRouteTypes {
     | '/faq'
     | '/history'
     | '/library'
+    | '/login'
+    | '/mandi'
+    | '/pricing'
     | '/profile'
     | '/results'
+    | '/schemes'
     | '/sdg'
   fileRoutesById: FileRoutesById
 }
@@ -142,8 +190,12 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   HistoryRoute: typeof HistoryRoute
   LibraryRoute: typeof LibraryRoute
+  LoginRoute: typeof LoginRoute
+  MandiRoute: typeof MandiRoute
+  PricingRoute: typeof PricingRoute
   ProfileRoute: typeof ProfileRoute
   ResultsRoute: typeof ResultsRoute
+  SchemesRoute: typeof SchemesRoute
   SdgRoute: typeof SdgRoute
 }
 
@@ -154,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/sdg'
       fullPath: '/sdg'
       preLoaderRoute: typeof SdgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schemes': {
+      id: '/schemes'
+      path: '/schemes'
+      fullPath: '/schemes'
+      preLoaderRoute: typeof SchemesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/results': {
@@ -168,6 +227,27 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mandi': {
+      id: '/mandi'
+      path: '/mandi'
+      fullPath: '/mandi'
+      preLoaderRoute: typeof MandiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -222,8 +302,12 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   HistoryRoute: HistoryRoute,
   LibraryRoute: LibraryRoute,
+  LoginRoute: LoginRoute,
+  MandiRoute: MandiRoute,
+  PricingRoute: PricingRoute,
   ProfileRoute: ProfileRoute,
   ResultsRoute: ResultsRoute,
+  SchemesRoute: SchemesRoute,
   SdgRoute: SdgRoute,
 }
 export const routeTree = rootRouteImport

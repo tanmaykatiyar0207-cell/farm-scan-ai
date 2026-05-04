@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import leafspot from "@/assets/disease-leafspot.jpg";
-import mildew from "@/assets/disease-mildew.jpg";
-import rust from "@/assets/disease-rust.jpg";
+import { diseases as diseasesEn } from "@/data/diseases";
+import { diseasesHi } from "@/data/diseases-hi";
+import { diseasesKn } from "@/data/diseases-kn";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -15,27 +16,31 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
-const diseases = [
-  { img: leafspot, name: "Leaf Spot", crop: "Tomato, Beans", symptoms: "Brown circular spots with yellow halo on leaves.", treatment: "Copper fungicide and remove infected leaves." },
-  { img: mildew, name: "Powdery Mildew", crop: "Grape, Cucumber", symptoms: "White powdery patches on leaf surfaces.", treatment: "Sulfur spray and improved airflow between plants." },
-  { img: rust, name: "Leaf Rust", crop: "Wheat, Coffee", symptoms: "Orange-brown pustules on the underside of leaves.", treatment: "Apply triazole fungicide; use resistant varieties." },
-  { img: leafspot, name: "Blight", crop: "Potato, Tomato", symptoms: "Dark water-soaked lesions; rapid leaf collapse.", treatment: "Mancozeb spray; rotate crops every season." },
-  { img: mildew, name: "Downy Mildew", crop: "Grape, Spinach", symptoms: "Yellow patches with greyish growth underneath.", treatment: "Apply protectant fungicide; avoid wet foliage." },
-  { img: rust, name: "Anthracnose", crop: "Mango, Beans", symptoms: "Sunken dark lesions on fruits and leaves.", treatment: "Prune infected parts; copper-based sprays." },
-];
-
 function LibraryPage() {
+  const { t, i18n } = useTranslation();
   const [q, setQ] = useState("");
-  const filtered = useMemo(
-    () => diseases.filter((d) => (d.name + d.crop + d.symptoms).toLowerCase().includes(q.toLowerCase())),
-    [q]
-  );
+  
+  const currentLang = i18n.language;
+  const activeDiseases = useMemo(() => {
+    if (currentLang === "हिन्दी") return diseasesHi;
+    if (currentLang === "ಕನ್ನಡ") return diseasesKn;
+    return diseasesEn;
+  }, [currentLang]);
+
+  const filtered = useMemo(() => {
+    return activeDiseases.filter((d, idx) => {
+      const enRef = diseasesEn[idx];
+      const enMatch = (enRef.name + enRef.crop + enRef.symptoms).toLowerCase().includes(q.toLowerCase());
+      const localMatch = (d.name + d.crop + d.symptoms).toLowerCase().includes(q.toLowerCase());
+      return enMatch || localMatch;
+    });
+  }, [q, activeDiseases]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 md:py-14">
       <div className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">Crop Disease Library</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Symptoms, identification and treatment for common crop diseases.</p>
+        <h1 className="font-display text-4xl font-extrabold">{t("Crop Disease Library")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("Symptoms, identification and treatment for common crop diseases.")}</p>
       </div>
 
       <div className="mx-auto mt-6 flex max-w-xl items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 shadow-soft focus-within:border-primary">
@@ -43,27 +48,26 @@ function LibraryPage() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by disease, crop or symptom…"
+          placeholder={t("Search by disease, crop or symptom…")}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((d) => (
-          <article key={d.name} className="group overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card">
-            <img src={d.img} alt={d.name} className="aspect-[4/3] w-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy" />
-            <div className="p-5">
+        {filtered.map((d, idx) => (
+          <article key={d.name + d.crop + idx} className="group overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card">
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">{d.crop}</p>
-              <h3 className="mt-1 font-display text-lg font-semibold">{d.name}</h3>
-              <p className="mt-2 text-sm text-muted-foreground"><span className="font-semibold text-foreground">Symptoms:</span> {d.symptoms}</p>
-              <p className="mt-1.5 text-sm text-muted-foreground"><span className="font-semibold text-foreground">Treatment:</span> {d.treatment}</p>
-            </div>
+              <h3 className="mt-2 font-display text-xl font-semibold">{d.name}</h3>
+              <div className="mt-4 space-y-3">
+                <p className="text-sm text-muted-foreground"><strong className="font-semibold text-foreground">{t("Symptoms:")}</strong> {d.symptoms}</p>
+                <p className="text-sm text-muted-foreground"><strong className="font-semibold text-foreground">{t("Treatment:")}</strong> {d.treatment}</p>
+              </div>
           </article>
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <p className="mt-10 text-center text-sm text-muted-foreground">No diseases match "{q}".</p>
+        <p className="mt-10 text-center text-sm text-muted-foreground">{t("No diseases match")} "{q}".</p>
       )}
     </div>
   );
