@@ -29,7 +29,6 @@ export function Footer() {
             <h4 className="font-display text-sm font-semibold">{t("Impact")}</h4>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li><Link to="/sdg" className="hover:text-primary">{t("SDG Alignment")}</Link></li>
-              <li><Link to="/about" className="hover:text-primary">{t("About us")}</Link></li>
               <li><span className="text-xs">{t("Your images are processed securely and never sold.")}</span></li>
             </ul>
           </div>

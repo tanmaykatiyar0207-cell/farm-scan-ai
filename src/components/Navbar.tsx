@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
-import { Globe, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -8,15 +8,14 @@ import { supabase } from "@/lib/supabase";
 const links = [
   { to: "/", label: "Home" },
   { to: "/analyze", label: "Analyze" },
-  { to: "/mandi", label: "Markets" },
   { to: "/library", label: "Library" },
+  { to: "/mandi", label: "Markets" },
   { to: "/schemes", label: "Schemes" },
   { to: "/pricing", label: "Pricing" },
-  { to: "/about", label: "About" },
 ] as const;
 
 export function Navbar() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [session, setSession] = useState<any>(null);
   
   useEffect(() => {
@@ -32,15 +31,6 @@ export function Navbar() {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const currentLang = i18n.language;
-  const displayLang = currentLang === "English" ? "EN" : currentLang === "हिन्दी" ? "हि" : "ಕ";
-
-  const toggleLanguage = () => {
-    if (currentLang === "English") i18n.changeLanguage("हिन्दी");
-    else if (currentLang === "हिन्दी") i18n.changeLanguage("ಕನ್ನಡ");
-    else i18n.changeLanguage("English");
-  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -69,13 +59,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleLanguage}
-            className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent sm:flex"
-          >
-            <Globe className="h-3.5 w-3.5" /> {displayLang}
-          </button>
-          
           {session ? (
             <Link
               to="/profile"

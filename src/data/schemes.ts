@@ -1,0 +1,242 @@
+export interface Scheme {
+  id: string;
+  title: string;
+  category: "financial" | "insurance" | "equipment";
+  description: string;
+  states: string[];
+  link: string;
+}
+
+export const INDIAN_SCHEMES: Scheme[] = [
+  // --- FINANCIAL AID ---
+  {
+    id: "pm-kisan",
+    title: "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+    category: "financial",
+    description: "Annual income support of ₹6,000 for all landholding farmer families in three equal installments.",
+    states: ["All India"],
+    link: "https://pmkisan.gov.in/",
+  },
+  {
+    id: "kcc",
+    title: "Kisan Credit Card (KCC)",
+    category: "financial",
+    description: "Credit scheme providing farmers with access to affordable short-term loans for cultivation and farm maintenance.",
+    states: ["All India"],
+    link: "https://www.myscheme.gov.in/schemes/kcc",
+  },
+  {
+    id: "enam",
+    title: "e-NAM (National Agriculture Market)",
+    category: "financial",
+    description: "Online trading platform for agricultural commodities, ensuring better price discovery for farmers across India.",
+    states: ["All India"],
+    link: "https://www.enam.gov.in/",
+  },
+  {
+    id: "pmkmy",
+    title: "PM Kisan Maandhan Yojana",
+    category: "financial",
+    description: "Old-age pension scheme for Small and Marginal Farmers (SMF) providing a monthly pension of ₹3,000.",
+    states: ["All India"],
+    link: "https://maandhan.in/",
+  },
+  {
+    id: "iss",
+    title: "Interest Subvention Scheme (ISS)",
+    category: "financial",
+    description: "Provides short-term crop loans up to ₹3 lakh at a subsidized interest rate of 7% per annum.",
+    states: ["All India"],
+    link: "https://pib.gov.in/PressReleasePage.aspx?PRID=1852445",
+  },
+  {
+    id: "pmmsy",
+    title: "PM Matsya Sampada Yojana (PMMSY)",
+    category: "financial",
+    description: "Flagship scheme for focused and sustainable development of the fisheries sector in India.",
+    states: ["All India"],
+    link: "https://pmmsy.dof.gov.in/",
+  },
+  {
+    id: "mksp",
+    title: "Mahila Kisan Sashaktikaran Pariyojana (MKSP)",
+    category: "financial",
+    description: "Sub-component of NRLM to empower women in agriculture by making systematic investments to enhance their participation.",
+    states: ["All India"],
+    link: "https://mksp.dac.gov.in/",
+  },
+  {
+    id: "fpo-support",
+    title: "Formation of 10,000 FPOs",
+    category: "financial",
+    description: "Central scheme to provide financial and technical support to form and promote Farmer Producer Organizations.",
+    states: ["All India"],
+    link: "https://sfacindia.com/",
+  },
+  {
+    id: "vca",
+    title: "Venture Capital Assistance (VCA)",
+    category: "financial",
+    description: "Financial support in the form of interest-free loans to agri-business projects to reduce their cost of capital.",
+    states: ["All India"],
+    link: "https://sfacindia.com/VCA-Scheme.aspx",
+  },
+  {
+    id: "agri-clinic",
+    title: "Agri-Clinics & Agri-Business Centres (ACABC)",
+    category: "financial",
+    description: "Providing professional extension services to farmers and supporting agri-entrepreneurship for unemployed youth.",
+    states: ["All India"],
+    link: "https://www.acabc.gov.in/",
+  },
+
+  // --- CROP INSURANCE ---
+  {
+    id: "pmfby",
+    title: "PMFBY (Pradhan Mantri Fasal Bima Yojana)",
+    category: "insurance",
+    description: "Low-premium crop insurance protecting farmers against yield loss due to non-preventable risks.",
+    states: ["All India"],
+    link: "https://pmfby.gov.in/",
+  },
+  {
+    id: "rwbcis",
+    title: "Restructured Weather Based Crop Insurance Scheme",
+    category: "insurance",
+    description: "Provides insurance for crops based on weather parameters like rainfall, temperature, and humidity.",
+    states: ["All India"],
+    link: "https://pmfby.gov.in/",
+  },
+  {
+    id: "livestock-insurance",
+    title: "Livestock Insurance Scheme",
+    category: "insurance",
+    description: "Provides protection to farmers and cattle rearers against loss of animals due to death.",
+    states: ["All India"],
+    link: "https://dahd.nic.in/schemes/programmes/livestock-insurance-scheme",
+  },
+  {
+    id: "up-kisan-bima",
+    title: "Mukhya Mantri Krishak Durghatna Kalyan Yojana",
+    category: "insurance",
+    description: "Provides financial assistance to farmers/nominees in case of accidental death or disability.",
+    states: ["Uttar Pradesh"],
+    link: "https://upagriculture.com/",
+  },
+
+  // --- EQUIPMENT & INFRASTRUCTURE ---
+  {
+    id: "pmksy",
+    title: "PMKSY (Pradhan Mantri Krishi Sinchai Yojana)",
+    category: "equipment",
+    description: "Focused on expanding cultivable area under assured irrigation and improving on-farm water use efficiency.",
+    states: ["All India"],
+    link: "https://pmksy.gov.in/",
+  },
+  {
+    id: "soil-health",
+    title: "Soil Health Card Scheme",
+    category: "equipment",
+    description: "Analyzing soil quality and providing crop-wise fertilizer recommendations through health cards.",
+    states: ["All India"],
+    link: "https://soilhealth.dac.gov.in/",
+  },
+  {
+    id: "pm-kusum",
+    title: "PM-KUSUM (Solar Pump Scheme)",
+    category: "equipment",
+    description: "Subsidies for setting up solar pumps and grid-connected solar power plants on barren lands.",
+    states: ["All India"],
+    link: "https://pmkusum.mnre.gov.in/",
+  },
+  {
+    id: "smam",
+    title: "Sub-Mission on Agricultural Mechanization (SMAM)",
+    category: "equipment",
+    description: "Promoting agricultural mechanization among small and marginal farmers to reduce manual labor.",
+    states: ["All India"],
+    link: "https://farmech.dac.gov.in/",
+  },
+  {
+    id: "midh",
+    title: "Mission for Integrated Development of Horticulture",
+    category: "equipment",
+    description: "Supports holistic growth of the horticulture sector, including fruits, vegetables, and flowers.",
+    states: ["All India"],
+    link: "https://midh.gov.in/",
+  },
+  {
+    id: "pkvy",
+    title: "Paramparagat Krishi Vikas Yojana (PKVY)",
+    category: "equipment",
+    description: "Promotes organic farming through a cluster-based approach and certification support.",
+    states: ["All India"],
+    link: "https://pgsindia-ncof.gov.in/",
+  },
+  {
+    id: "nbhm",
+    title: "National Beekeeping & Honey Mission (NBHM)",
+    category: "equipment",
+    description: "Aims for the overall promotion and development of scientific beekeeping in the country (Sweet Revolution).",
+    states: ["All India"],
+    link: "https://nbb.gov.in/",
+  },
+  {
+    id: "nmsa",
+    title: "National Mission for Sustainable Agriculture (NMSA)",
+    category: "equipment",
+    description: "Focuses on climate change adaptation, organic farming, and soil health management.",
+    states: ["All India"],
+    link: "https://nmsa.dac.gov.in/",
+  },
+  {
+    id: "rad",
+    title: "Rainfed Area Development (RAD)",
+    category: "equipment",
+    description: "Component of NMSA promoting integrated farming systems in rainfed areas for better productivity.",
+    states: ["All India"],
+    link: "https://nmsa.dac.gov.in/RAD_Overview.aspx",
+  },
+  {
+    id: "bamboo-mission",
+    title: "National Bamboo Mission",
+    category: "equipment",
+    description: "Focuses on development of bamboo sector as a means of generating income and promoting bamboo based industries.",
+    states: ["All India"],
+    link: "https://nbm.nic.in/",
+  },
+
+  // --- STATE SPECIFIC HIGHLIGHTS ---
+  {
+    id: "karnataka-krishi-bhagya",
+    title: "Krishi Bhagya (Karnataka)",
+    category: "equipment",
+    description: "Subsidies for farm ponds, polyhouses, and micro-irrigation to improve dryland farming.",
+    states: ["Karnataka"],
+    link: "https://raitamitra.karnataka.gov.in/",
+  },
+  {
+    id: "rythu-bandhu",
+    title: "Rythu Bandhu (Telangana)",
+    category: "financial",
+    description: "Investment support scheme to take care of the initial investment needs of every farmer.",
+    states: ["Andhra Pradesh", "Telangana"],
+    link: "https://rythubandhu.telangana.gov.in/",
+  },
+  {
+    id: "kal-ia",
+    title: "KALIA Scheme (Odisha)",
+    category: "financial",
+    description: "Krushak Assistance for Livelihood and Income Augmentation for small farmers and landless laborers.",
+    states: ["Odisha"],
+    link: "https://kalia.odisha.gov.in/",
+  },
+  {
+    id: "maha-solar-pump",
+    title: "Mukhya Mantri Saur Krushi Pump Yojana",
+    category: "equipment",
+    description: "Distribution of solar pumps to farmers in Maharashtra with up to 95% subsidy.",
+    states: ["Maharashtra"],
+    link: "https://www.mseadl.in/solar-pump-yojana/",
+  }
+];

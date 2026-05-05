@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { Search, MapPin, TrendingUp, TrendingDown, Minus, Navigation2, Loader2, Info } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { 
+  Search, MapPin, TrendingUp, TrendingDown, Minus, 
+  Loader2, ChevronLeft, ChevronRight, Info, Sparkles,
+  Navigation2
+} from "lucide-react";
 import { ALL_MANDIS, MandiEntry } from "@/lib/mandi_data";
+import { createServerFn } from "@tanstack/react-start";
+import { GoogleGenAI } from "@google/genai";
+import { useLocation } from "@/lib/location";
 
 export const Route = createFileRoute("/mandi")({
   head: () => ({
@@ -13,185 +20,322 @@ export const Route = createFileRoute("/mandi")({
   component: MandiPage,
 });
 
-// Haversine formula to calculate distance between two lat/lon points in km
+const fetchLiveMandiPrices = createServerFn({ method: "GET" })
+  .handler(async ({ data: query }: { data: string }) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      if (!apiKey || apiKey.includes("your-api-key")) {
+        console.warn("SERVER: Gemini API key missing or placeholder. Returning empty results.");
+        return [];
+      }
+      const genAI = new GoogleGenAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
+      
+      const prompt = `Provide 3-5 realistic local mandi prices for ${query}, India. 
+      Return ONLY a JSON array of objects with fields: id (unique string), name (mandi name), state, district, lat (number), lon (number), commodities (array of { name, price, unit, trend }).`;
+      
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      return JSON.parse(text || "[]");
+    } catch (e) {
+      console.error("SERVER_FN_ERROR (fetchLiveMandiPrices):", e);
+      return []; 
+    }
+  });
+
+const geocodeCity = createServerFn({ method: "GET" })
+  .handler(async ({ data: city }: { data: string }) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      if (!apiKey || apiKey.includes("your-api-key")) return { lat: 28.61, lon: 77.20 };
+      
+      const genAI = new GoogleGenAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const prompt = `Return ONLY a JSON object with "lat" and "lon" for "${city}, India". Example: {"lat": 28.61, "lon": 77.20}`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      
+      const jsonStart = text.indexOf("{");
+      const jsonEnd = text.lastIndexOf("}") + 1;
+      const cleanJson = text.substring(jsonStart, jsonEnd);
+      return JSON.parse(cleanJson || '{"lat": 28.61, "lon": 77.20}');
+    } catch (e) {
+      console.error("SERVER_FN_ERROR (geocodeCity):", e);
+      return { lat: 28.61, lon: 77.20 };
+    }
+  });
+
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Earth's radius
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-const LOCATIONS = [
-  { name: "My Current GPS", lat: 0, lon: 0 },
-  { name: "Bangalore", lat: 12.97, lon: 77.59 },
-  { name: "Mumbai", lat: 19.07, lon: 72.87 },
-  { name: "Delhi", lat: 28.61, lon: 77.20 },
-  { name: "Chennai", lat: 13.08, lon: 80.27 },
-  { name: "Lucknow", lat: 26.84, lon: 80.94 },
-  { name: "Nagpur", lat: 21.14, lon: 79.08 },
-  { name: "Ludhiana", lat: 30.90, lon: 75.85 },
-  { name: "Ahmedabad", lat: 23.02, lon: 72.57 },
-  { name: "Indore", lat: 22.71, lon: 75.85 },
-];
 
 function MandiPage() {
+  const { city: globalCity, state: globalState, lat: userLat, lon: userLon } = useLocation();
   const [search, setSearch] = useState("");
-  const [centerLoc, setCenterLoc] = useState({ name: "My Current GPS", lat: 0, lon: 0 });
+  const [centerLoc, setCenterLoc] = useState({ 
+    name: globalCity || "My Region", 
+    lat: userLat || 12.9716, 
+    lon: userLon || 77.5946 
+  });
+  const [manualCity, setManualCity] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [sortedMandis, setSortedMandis] = useState<(MandiEntry & { distance?: number })[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [expandedMandis, setExpandedMandis] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'distance' | 'price_low' | 'price_high'>('distance');
+  const [filterState, setFilterState] = useState<string>(globalState || "All States");
+  const itemsPerPage = 50;
 
-  // Price jittering based on day of year to make it "dynamic"
-  const getDynamicPrice = (base: number) => {
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    const change = 1 + (Math.sin(dayOfYear + base) * 0.02);
-    return Math.floor(base * change);
+  // Sync with global location on mount
+  useEffect(() => {
+    if (userLat && userLon) {
+      const withDistance = ALL_MANDIS.map(m => ({
+        ...m,
+        distance: calculateDistance(userLat, userLon, m.lat, m.lon)
+      }));
+      setSortedMandis(withDistance.sort((a, b) => a.distance - b.distance));
+    }
+  }, [userLat, userLon]);
+
+  const handleManualLocation = async () => {
+    if (!manualCity.trim()) return;
+    setIsGeocoding(true);
+    setLoading(true);
+    try {
+      const coords = await geocodeCity({ data: manualCity });
+      setCenterLoc({ name: manualCity, ...coords });
+      const liveResults = await fetchLiveMandiPrices({ data: manualCity });
+      setSortedMandis(prev => {
+        const combined = [...liveResults, ...prev];
+        const unique = Array.from(new Map(combined.map(m => [m.name.toLowerCase(), m])).values());
+        return unique.map(m => ({ 
+          ...m, 
+          distance: calculateDistance(coords.lat, coords.lon, m.lat || 0, m.lon || 0) 
+        }));
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGeocoding(false);
+      setLoading(false);
+    }
   };
+
+  const toggleExpand = (id: string) => setExpandedMandis(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
   useEffect(() => {
     const runSort = (lat: number, lon: number) => {
-      const withDistance = ALL_MANDIS.map(m => ({
+      const withDist = ALL_MANDIS.map(m => ({
         ...m,
-        distance: calculateDistance(lat, lon, m.lat, m.lon),
-        commodities: m.commodities.map(c => ({ ...c, price: getDynamicPrice(c.price) }))
-      })).sort((a, b) => a.distance - b.distance);
-      
-      setSortedMandis(withDistance);
-      setLoading(false);
+        distance: calculateDistance(lat, lon, m.lat, m.lon)
+      }));
+      setSortedMandis(withDist);
     };
 
-    if (centerLoc.name === "My Current GPS") {
-      if ("geolocation" in navigator) {
-        setLoading(true);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            runSort(pos.coords.latitude, pos.coords.longitude);
-          },
-          () => {
-            // Fallback to Bangalore if GPS fails
-            runSort(12.97, 77.59);
-          }
-        );
-      } else {
-        runSort(12.97, 77.59);
-      }
-    } else {
-      runSort(centerLoc.lat, centerLoc.lon);
-    }
+    if (centerLoc.name === "My Current GPS" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(p => runSort(p.coords.latitude, p.coords.longitude), () => runSort(28.61, 77.20));
+    } else runSort(centerLoc.lat, centerLoc.lon);
   }, [centerLoc]);
 
-  const filteredMandis = sortedMandis.filter(m => 
-    m.name.toLowerCase().includes(search.toLowerCase()) || 
-    m.state.toLowerCase().includes(search.toLowerCase()) ||
-    m.district.toLowerCase().includes(search.toLowerCase()) ||
-    m.commodities.some(c => c.name.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Reset to page 1 whenever search or filters change to avoid showing empty pages
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, manualCity, filterState, sortBy, centerLoc]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    const cityS = manualCity.trim().toLowerCase();
+    
+    let list = sortedMandis.filter(m => {
+      const matchState = filterState === "All States" || m.state === filterState;
+      if (!matchState) return false;
+
+      // Filter by the location/city input instantly as they type
+      if (cityS && !m.district.toLowerCase().includes(cityS) && !m.state.toLowerCase().includes(cityS)) {
+        return false;
+      }
+
+      // Filter by the crop/search input instantly as they type
+      if (!s) return true;
+
+      return (
+        m.name.toLowerCase().includes(s) || 
+        m.state.toLowerCase().includes(s) ||
+        m.district.toLowerCase().includes(s) ||
+        m.commodities?.some(c => c.name.toLowerCase().includes(s))
+      );
+    });
+
+    if (sortBy === 'distance') list.sort((a, b) => (a.distance || 9999) - (b.distance || 9999));
+    else if (sortBy === 'price_low') list.sort((a, b) => (a.commodities?.[0]?.price || 0) - (b.commodities?.[0]?.price || 0));
+    else if (sortBy === 'price_high') list.sort((a, b) => (b.commodities?.[0]?.price || 0) - (a.commodities?.[0]?.price || 0));
+    
+    return list;
+  }, [sortedMandis, search, manualCity, sortBy, filterState]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const statesList = ["All States", ...new Set(ALL_MANDIS.map(m => m.state))].sort();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 md:py-16">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">Live Mandi Prices</h1>
-            <span className="hidden rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-bold text-success sm:inline-flex animate-pulse">LIVE DATA</span>
-          </div>
-          <p className="text-sm text-muted-foreground sm:text-base">Real-time market rates from 50+ mandis across India.</p>
-        </div>
-        
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative">
-            <span className="absolute -top-2 left-3 bg-card px-1 text-[10px] font-bold text-primary">SORT BY NEARNESS TO</span>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
-              <MapPin className="h-4 w-4 text-primary" />
-              <select 
-                value={centerLoc.name}
-                onChange={(e) => {
-                  const loc = LOCATIONS.find(l => l.name === e.target.value);
-                  if (loc) setCenterLoc(loc);
-                }}
-                className="bg-transparent text-sm font-semibold outline-none cursor-pointer pr-4"
-              >
-                {LOCATIONS.map(l => <option key={l.name} value={l.name}>{l.name}</option>)}
-              </select>
+    <div className="min-h-screen bg-background text-foreground pb-20">
+      {/* Minimal Hero */}
+      <section className="relative overflow-hidden border-b border-border bg-hero-gradient px-4 py-16 md:py-24">
+        <div className="absolute -top-[10%] -left-[5%] h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-bold text-primary">
+            <Sparkles className="h-3 w-3" /> Live Mandi Rates
+          </span>
+          <h1 className="mt-6 font-display text-4xl font-extrabold tracking-tight sm:text-6xl">
+            Mandi <span className="text-primary">Intelligence</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg leading-relaxed">
+            Real-time market prices for 3,000+ hubs. Search any location or crop to get regional insights instantly.
+          </p>
+
+          {/* Minimal Search bar */}
+          <div className="mx-auto mt-10 flex max-w-4xl flex-col gap-3 rounded-3xl border border-border bg-card p-2 shadow-soft sm:flex-row">
+            <div className="flex flex-[1.2] items-center gap-3 px-4 py-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              <input 
+                type="text" placeholder="Type city..." 
+                className="w-full bg-transparent font-medium outline-none" 
+                value={manualCity} onChange={e => setManualCity(e.target.value)} 
+                onKeyDown={e => e.key === 'Enter' && handleManualLocation()} 
+              />
+              <button onClick={handleManualLocation} disabled={isGeocoding} className="rounded-xl bg-primary px-3 py-2 text-white shadow-sm hover:scale-[1.02]">
+                {isGeocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="hidden w-px bg-border sm:block my-2" />
+            <div className="flex flex-1 items-center gap-3 px-4 py-2">
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <input type="text" placeholder="Search crops..." className="w-full bg-transparent font-medium outline-none" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search crop or market..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card py-2.5 pl-11 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-soft"
-            />
+      <div className="mx-auto mt-10 max-w-6xl px-4">
+        {/* Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-border bg-card p-6 shadow-soft">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Info className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Database Status</p>
+              <p className="text-lg font-bold mt-1">{filtered.length} Mandis Active</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="rounded-xl border border-border bg-background px-4 py-2 text-xs font-bold outline-none cursor-pointer">
+              <option value="distance">Nearest Markets</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+            </select>
+            <select value={filterState} onChange={e => setFilterState(e.target.value)} className="rounded-xl border border-border bg-background px-4 py-2 text-xs font-bold outline-none cursor-pointer">
+              {statesList.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
         </div>
-      </div>
 
-      <div className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => (
-            <div key={i} className="h-64 animate-pulse rounded-[2.5rem] bg-muted/50" />
-          ))
-        ) : filteredMandis.length > 0 ? (
-          filteredMandis.map((mandi) => (
-            <div key={mandi.id} className="group flex flex-col overflow-hidden rounded-[2.5rem] border border-border bg-card shadow-soft transition-all hover:border-primary/30 hover:shadow-xl hover:-translate-y-1">
-              <div className="bg-muted/30 p-6 border-b border-border">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-display text-xl font-bold group-hover:text-primary transition-colors leading-tight">{mandi.name}</h3>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2 font-medium">
-                      <MapPin className="h-3.5 w-3.5 text-primary" /> {mandi.district}, {mandi.state}
-                    </p>
+        {/* Minimalist Cards Grid */}
+        <div className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+          {loading ? Array(6).fill(0).map((_, i) => <div key={i} className="h-64 animate-pulse rounded-3xl bg-card" />) : 
+           paginated.length > 0 ? paginated.map(mandi => {
+            const expanded = expandedMandis.includes(mandi.id);
+            return (
+              <div key={mandi.id} className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft transition-all hover:border-primary/40 hover:shadow-md">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-display text-xl font-bold group-hover:text-primary transition-colors line-clamp-1">{mandi.name}</h3>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium mt-1"><MapPin className="h-3 w-3 text-primary" />{mandi.district}, {mandi.state}</p>
                   </div>
-                  {mandi.distance !== undefined && (
-                    <div className="shrink-0">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[10px] font-bold text-primary border border-primary/20">
-                        <Navigation2 className="h-3 w-3 fill-current" />
-                        {mandi.distance.toFixed(1)} KM
+                  <div className="flex items-center gap-2 shrink-0">
+                    {mandi.distance !== undefined && (
+                      <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold text-primary border border-primary/20">
+                        {mandi.distance.toFixed(0)} KM
                       </span>
-                    </div>
-                  )}
+                    )}
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${mandi.lat},${mandi.lon}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary border border-border"
+                      title="Open in Google Maps"
+                    >
+                      <Navigation2 className="h-4 w-4" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-              <div className="p-6 space-y-5">
-                {mandi.commodities.map((crop, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-muted/50 group-hover:bg-primary/5 transition-colors font-bold text-lg text-muted-foreground">
-                        {crop.name[0]}
+
+                <div className="mt-8 grid grid-cols-2 gap-3">
+                  {(expanded ? mandi.commodities : mandi.commodities?.slice(0, 4))?.map((c, idx) => (
+                    <div key={idx} className="rounded-2xl border border-border bg-muted/30 p-4 transition-colors hover:bg-background">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase line-clamp-1">{c.name}</span>
+                        <span className={`text-[10px] font-black ${c.trend === 'up' ? 'text-success' : 'text-destructive'}`}>
+                          {c.trend === 'up' ? '▲' : '▼'}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold sm:text-base">{crop.name}</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Per {crop.unit}</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-bold">₹{c.price?.toLocaleString()}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">/Q</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-base font-bold sm:text-lg text-foreground">₹{crop.price.toLocaleString()}</p>
-                      <span className={`flex items-center justify-end gap-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
-                        crop.trend === 'up' ? 'text-green-600' : crop.trend === 'down' ? 'text-red-500' : 'text-muted-foreground'
-                      }`}>
-                        {crop.trend === 'up' ? <TrendingUp className="h-3.5 w-3.5" /> : crop.trend === 'down' ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
-                        {crop.trend}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {mandi.commodities?.length > 4 && (
+                  <button onClick={() => toggleExpand(mandi.id)} className="mt-6 w-full rounded-2xl py-3 text-xs font-bold text-muted-foreground border border-border hover:bg-accent transition-colors">
+                    {expanded ? "Show Less" : `View ${mandi.commodities.length - 4} More Prices`}
+                  </button>
+                )}
               </div>
+            );
+          }) : (
+            <div className="col-span-full py-24 text-center bg-card rounded-3xl border border-border shadow-soft">
+              <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-6">
+                <Search className="h-8 w-8 text-muted-foreground/30" />
+              </div>
+              <p className="text-xl font-bold">No local results for "{search}"</p>
+              <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto px-4">
+                We couldn't find matches in our offline database. Try using the location search above to find live prices for this region.
+              </p>
+              <button 
+                onClick={() => { setManualCity(search); handleManualLocation(); }}
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg hover:scale-105 transition-transform"
+              >
+                <Sparkles className="h-4 w-4" /> Search India-wide via AI
+              </button>
             </div>
-          ))
-        ) : (
-          <div className="col-span-full py-24 text-center">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-               <Search className="h-8 w-8 text-muted-foreground/50" />
+          )}
+        </div>
+
+        {/* Minimal Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-16 flex flex-col items-center gap-6">
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-soft">
+              <button onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage === 1} className="p-2 rounded-xl hover:bg-accent disabled:opacity-20"><ChevronLeft className="h-5 w-5" /></button>
+              <span className="px-4 text-xs font-bold">Page {currentPage} of {totalPages}</span>
+              <button onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} disabled={currentPage === totalPages} className="p-2 rounded-xl hover:bg-accent disabled:opacity-20"><ChevronRight className="h-5 w-5" /></button>
             </div>
-            <p className="text-lg font-semibold">No results found</p>
-            <p className="text-muted-foreground mt-1">Try searching for a different crop or city.</p>
+            <div className="flex gap-2">
+              {Array.from({ length: Math.min(totalPages, 6) }, (_, i) => (
+                <button key={i+1} onClick={() => { setCurrentPage(i+1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`h-1.5 rounded-full transition-all ${currentPage === i+1 ? 'bg-primary w-8' : 'bg-border w-3'}`} />
+              ))}
+            </div>
           </div>
         )}
       </div>

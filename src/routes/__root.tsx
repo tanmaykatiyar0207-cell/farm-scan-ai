@@ -4,6 +4,9 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import "@/lib/i18n";
+import { AlertTriangle } from "lucide-react";
+import { LocationProvider } from "@/lib/location";
+import React from "react";
 
 function NotFoundComponent() {
   return (
@@ -22,6 +25,31 @@ function NotFoundComponent() {
   );
 }
 
+function ErrorComponent({ error }: { error: any }) {
+  console.error("Global Error Caught:", error);
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-destructive mb-6">
+          <AlertTriangle className="h-8 w-8" />
+        </div>
+        <h2 className="font-display text-2xl font-bold">Oops! Something went wrong</h2>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Our servers encountered a temporary issue. Please refresh the page or try again in a moment.
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-8 inline-flex rounded-full bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-lg hover:scale-105 transition-all"
+        >
+          Refresh Page
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -39,6 +67,7 @@ export const Route = createRootRoute({
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
@@ -50,15 +79,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+
+
 function RootComponent() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="flex-1 pb-20 md:pb-0">
-        <Outlet />
-      </main>
-      <Footer />
-      <BottomTabBar />
-    </div>
+    <LocationProvider>
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 pb-20 md:pb-0">
+          <Outlet />
+        </main>
+        <Footer />
+        <BottomTabBar />
+      </div>
+    </LocationProvider>
   );
 }
