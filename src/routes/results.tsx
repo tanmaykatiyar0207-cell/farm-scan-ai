@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, CheckCircle2, AlertTriangle, Leaf, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { analyzeWithGemini, getMockResult } from "@/lib/gemini";
+import { transliterate } from "@/lib/transliterate";
 import diseaseImgFallback from "@/assets/disease-leafspot.jpg";
 
 type ResultsSearch = { location?: string };
@@ -29,10 +31,13 @@ const sevStyles: Record<string, string> = {
 function ResultsPage() {
   const search = Route.useSearch();
   const location = search.location || "Unknown";
+  const { i18n } = useTranslation();
   const [result, setResult] = useState<any>(null);
+  const [displayResult, setDisplayResult] = useState<any>(null);
   const [imgUrl, setImgUrl] = useState<string>(diseaseImgFallback);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [transliterating, setTransliterating] = useState(false);
 
   useEffect(() => {
     const runAnalysis = async () => {
@@ -96,6 +101,32 @@ function ResultsPage() {
         });
         
         setResult(analysis);
+
+        // --- HACKATHON INTEGRATION: Push to Heatmap (localStorage feed) ---
+        if (analysis && !analysis.error) {
+          const lat = sessionStorage.getItem("pendingLat");
+          const lon = sessionStorage.getItem("pendingLon");
+          
+          if (lat && lon) {
+            const newAnalysis = {
+              id: `realtime-${Date.now()}`,
+              crop: analysis.crop || "Unknown",
+              disease: analysis.disease || "Unknown",
+              severity: analysis.severity || "Medium",
+              lat: parseFloat(lat),
+              lon: parseFloat(lon),
+              created_at: new Date().toISOString(),
+              city: location,
+              state: location,
+              isRealtime: true
+            };
+            
+            const existing = JSON.parse(localStorage.getItem("communityAnalyses") || "[]");
+            localStorage.setItem("communityAnalyses", JSON.stringify([newAnalysis, ...existing].slice(0, 50)));
+            console.log("HEATMAP_SYNC: Diagnosis pushed to CropWatch.");
+          }
+        }
+        // -----------------------------------------------------------------
         
       } catch (err: any) {
         console.error("Critical failure in analysis pipeline:", err);
@@ -107,6 +138,43 @@ function ResultsPage() {
 
     runAnalysis();
   }, [location]);
+
+  // Handle Transliteration when language changes or result arrives
+  useEffect(() => {
+    if (!result) return;
+    
+    const applyTransliteration = async () => {
+      const lang = i18n.language;
+      if (lang === "en") {
+        setDisplayResult(result);
+        return;
+      }
+
+      setTransliterating(true);
+      try {
+        const trans = { ...result };
+        trans.crop = await transliterate(result.crop, lang);
+        trans.disease = await transliterate(result.disease, lang);
+        trans.symptoms = await transliterate(result.symptoms, lang);
+        
+        if (result.treatment) {
+          trans.treatment = await Promise.all(result.treatment.map((t: string) => transliterate(t, lang)));
+        }
+        if (result.prevention) {
+          trans.prevention = await Promise.all(result.prevention.map((t: string) => transliterate(t, lang)));
+        }
+        
+        setDisplayResult(trans);
+      } catch (err) {
+        console.error("Transliteration error:", err);
+        setDisplayResult(result);
+      } finally {
+        setTransliterating(false);
+      }
+    };
+
+    applyTransliteration();
+  }, [result, i18n.language]);
 
   if (loading) {
     return (
@@ -134,18 +202,26 @@ function ResultsPage() {
     );
   }
 
-  const sev: string = result.severity || "Medium";
+  const res = displayResult || result;
+  if (!res) return null;
+  
+  const sev: string = res.severity || "Medium";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
+      {transliterating && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-2 text-xs font-semibold text-primary animate-pulse">
+          <Loader2 className="h-3 w-3 animate-spin" /> Translating results to your script...
+        </div>
+      )}
       <div className="grid gap-6 md:grid-cols-[1.1fr_1fr]">
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-          <img src={imgUrl} alt={result.disease} className="aspect-[4/3] w-full object-cover" />
+          <img src={imgUrl} alt={res.disease} className="aspect-[4/3] w-full object-cover" />
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Crop</p>
-                <p className="font-display text-lg font-semibold">{result.crop}</p>
+                <p className="font-display text-lg font-semibold">{res.crop}</p>
               </div>
               <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${sevStyles[sev] || sevStyles["Medium"]}`}>
                 {sev === "Healthy" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
@@ -159,14 +235,24 @@ function ResultsPage() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Leaf className="h-3.5 w-3.5" /> Diagnosis
           </span>
-          <h1 className="mt-3 font-display text-3xl font-bold leading-tight">{result.disease}</h1>
+          <h1 className="mt-3 font-display text-3xl font-bold leading-tight">{res.disease}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Confidence: <span className="font-semibold text-foreground">{result.confidence}%</span>
+            Confidence: <span className="font-semibold text-foreground">{res.confidence}%</span>
           </p>
           <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${result.confidence}%` }} />
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${res.confidence}%` }} />
           </div>
-          <div className="mt-6">
+
+          {res.symptoms && (
+            <div className="mt-6 rounded-2xl bg-primary/5 p-4 border border-primary/10">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary/70">Observed Symptoms</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-foreground/80 italic">
+                "{res.symptoms}"
+              </p>
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/library" className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-accent">
               <BookOpen className="h-4 w-4" /> Learn more
             </Link>
@@ -175,8 +261,8 @@ function ResultsPage() {
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <DiagnosisCard title="Treatment" items={result.treatment} tone="primary" />
-        <DiagnosisCard title="Prevention" items={result.prevention} tone="earth" />
+        <DiagnosisCard title="Treatment" items={res.treatment} tone="primary" />
+        <DiagnosisCard title="Prevention" items={res.prevention} tone="earth" />
       </div>
     </div>
   );

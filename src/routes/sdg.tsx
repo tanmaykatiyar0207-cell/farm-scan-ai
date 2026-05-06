@@ -24,18 +24,25 @@ function SDGPage() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
+      <div className="mt-12 grid gap-6 md:grid-cols-3">
         <SDGCard
           n="02"
-          color="bg-[oklch(0.7_0.18_85)]"
+          color="bg-[#e5243b]"
           title="Zero Hunger"
           Icon={Wheat}
           desc="By detecting crop diseases early, we help reduce food loss and improve yields for smallholder farmers worldwide."
         />
         <SDGCard
+          n="12"
+          color="bg-[#bf8b2e]"
+          title="Responsible Consumption"
+          Icon={Sprout}
+          desc="Targeted diagnosis reduces unnecessary pesticide use, preventing chemical runoff and promoting soil health."
+        />
+        <SDGCard
           n="08"
-          color="bg-[oklch(0.55_0.2_25)]"
-          title="Decent Work & Economic Growth"
+          color="bg-[#a21942]"
+          title="Economic Growth"
           Icon={TrendingUp}
           desc="Healthier harvests mean better incomes — supporting resilient rural economies and farming livelihoods."
         />
@@ -45,7 +52,7 @@ function SDGPage() {
         {[
           { k: "30%", v: "potential reduction in crop loss" },
           { k: "5s", v: "to diagnose any photo" },
-          { k: "3", v: "languages for inclusivity" },
+          { k: "24/7", v: "real-time regional monitoring" },
         ].map((s) => (
           <div key={s.k} className="rounded-3xl border border-border bg-card p-6 text-center shadow-soft">
             <p className="font-display text-4xl font-extrabold text-primary">{s.k}</p>

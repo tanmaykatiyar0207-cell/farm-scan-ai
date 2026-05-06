@@ -12,6 +12,41 @@ export const Route = createFileRoute("/pricing")({
 function PricingPage() {
   const { t } = useTranslation();
 
+  const handlePayment = (amount: number, planName: string) => {
+    const Razorpay = (window as any).Razorpay;
+    
+    if (!Razorpay) {
+      alert("Payment system is loading. Please try again in a moment.");
+      return;
+    }
+
+    const options = {
+      key: "rzp_test_placeholder", // Replace with real key for production
+      amount: amount * 100, // Amount in paise
+      currency: "INR",
+      name: "Farmassist AI",
+      description: `Upgrade to ${planName}`,
+      image: "/logo.png",
+      handler: function (response: any) {
+        alert(`Payment Successful!\nPayment ID: ${response.razorpay_payment_id}\nYour account will be upgraded to ${planName} shortly.`);
+      },
+      prefill: {
+        name: "Indian Farmer",
+        email: "farmer@example.com",
+        contact: "9999999999"
+      },
+      notes: {
+        plan: planName
+      },
+      theme: {
+        color: "#10b981" // Primary emerald color
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
       <div className="text-center">
@@ -34,7 +69,10 @@ function PricingPage() {
             <li className="flex items-center gap-3 text-sm"><Check className="h-5 w-5 text-primary" /> {t("Immediate treatment advice")}</li>
             <li className="flex items-center gap-3 text-sm"><Check className="h-5 w-5 text-primary" /> {t("Access in all supported languages")}</li>
           </ul>
-          <button className="mt-8 w-full rounded-full bg-primary/10 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/20">
+          <button 
+            onClick={() => handlePayment(99, "Daily Pass")}
+            className="mt-8 w-full rounded-full bg-primary/10 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/20"
+          >
             {t("Get Daily Pass")}
           </button>
         </div>
@@ -56,7 +94,10 @@ function PricingPage() {
             <li className="flex items-center gap-3 text-sm"><Check className="h-5 w-5 text-primary" /> {t("Unlimited history storage")}</li>
             <li className="flex items-center gap-3 text-sm"><Check className="h-5 w-5 text-primary" /> {t("Early access to new features")}</li>
           </ul>
-          <button className="mt-8 w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
+          <button 
+            onClick={() => handlePayment(999, "Monthly Pro")}
+            className="mt-8 w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
             {t("Subscribe Now")}
           </button>
         </div>

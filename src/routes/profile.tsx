@@ -146,15 +146,19 @@ function ProfilePage() {
           <Globe className="h-4 w-4 text-primary" /> {t("Language")}
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          {["English", "हिन्दी", "ಕನ್ನಡ"].map((l) => (
+          {[
+            { code: "en", label: "English" },
+            { code: "hi", label: "हिन्दी" },
+            { code: "kn", label: "ಕನ್ನಡ" },
+          ].map((l) => (
             <button
-              key={l}
-              onClick={() => setLang(l)}
+              key={l.code}
+              onClick={() => setLang(l.code)}
               className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-                lang === l ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-accent"
+                lang === l.code ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-accent"
               }`}
             >
-              {l}
+              {l.label}
             </button>
           ))}
         </div>

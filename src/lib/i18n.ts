@@ -8,11 +8,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: {
-        translation: {
-          // Empty since we are using static English text in components now
-        }
-      }
+      en: { translation: {} },
+      hi: { translation: {} },
+      kn: { translation: {} },
     },
     lng: "en",
     fallbackLng: "en",

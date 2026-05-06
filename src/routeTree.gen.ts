@@ -18,6 +18,7 @@ import { Route as MandiRouteImport } from './routes/mandi'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as HeatmapRouteImport } from './routes/heatmap'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as AnalyzeRouteImport } from './routes/analyze'
 import { Route as AboutRouteImport } from './routes/about'
@@ -68,6 +69,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HeatmapRoute = HeatmapRouteImport.update({
+  id: '/heatmap',
+  path: '/heatmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/analyze': typeof AnalyzeRoute
   '/faq': typeof FaqRoute
+  '/heatmap': typeof HeatmapRoute
   '/history': typeof HistoryRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/analyze': typeof AnalyzeRoute
   '/faq': typeof FaqRoute
+  '/heatmap': typeof HeatmapRoute
   '/history': typeof HistoryRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/analyze': typeof AnalyzeRoute
   '/faq': typeof FaqRoute
+  '/heatmap': typeof HeatmapRoute
   '/history': typeof HistoryRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/analyze'
     | '/faq'
+    | '/heatmap'
     | '/history'
     | '/library'
     | '/login'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/analyze'
     | '/faq'
+    | '/heatmap'
     | '/history'
     | '/library'
     | '/login'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/analyze'
     | '/faq'
+    | '/heatmap'
     | '/history'
     | '/library'
     | '/login'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AnalyzeRoute: typeof AnalyzeRoute
   FaqRoute: typeof FaqRoute
+  HeatmapRoute: typeof HeatmapRoute
   HistoryRoute: typeof HistoryRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/heatmap': {
+      id: '/heatmap'
+      path: '/heatmap'
+      fullPath: '/heatmap'
+      preLoaderRoute: typeof HeatmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/faq': {
       id: '/faq'
       path: '/faq'
@@ -300,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AnalyzeRoute: AnalyzeRoute,
   FaqRoute: FaqRoute,
+  HeatmapRoute: HeatmapRoute,
   HistoryRoute: HistoryRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,

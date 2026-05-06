@@ -79,7 +79,11 @@ function AnalyzePage() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const state = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+          const { latitude, longitude } = pos.coords;
+          sessionStorage.setItem("pendingLat", latitude.toString());
+          sessionStorage.setItem("pendingLon", longitude.toString());
+          
+          const state = await reverseGeocode(latitude, longitude);
           if (state && state !== "Unknown") {
             // Match to our known states or use raw value
             const matched = LOCATIONS.find(

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { ALL_MANDIS, MandiEntry } from "@/lib/mandi_data";
 import { createServerFn } from "@tanstack/react-start";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useLocation } from "@/lib/location";
 
 export const Route = createFileRoute("/mandi")({
@@ -28,7 +28,7 @@ const fetchLiveMandiPrices = createServerFn({ method: "GET" })
         console.warn("SERVER: Gemini API key missing or placeholder. Returning empty results.");
         return [];
       }
-      const genAI = new GoogleGenAI(apiKey);
+      const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         generationConfig: { responseMimeType: "application/json" }
@@ -52,7 +52,7 @@ const geocodeCity = createServerFn({ method: "GET" })
       const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey || apiKey.includes("your-api-key")) return { lat: 28.61, lon: 77.20 };
       
-      const genAI = new GoogleGenAI(apiKey);
+      const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
       const prompt = `Return ONLY a JSON object with "lat" and "lon" for "${city}, India". Example: {"lat": 28.61, "lon": 77.20}`;
@@ -88,6 +88,7 @@ function MandiPage() {
   });
   const [manualCity, setManualCity] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [extraMandis, setExtraMandis] = useState<MandiEntry[]>([]);
   const [sortedMandis, setSortedMandis] = useState<(MandiEntry & { distance?: number })[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedMandis, setExpandedMandis] = useState<string[]>([]);
@@ -96,16 +97,26 @@ function MandiPage() {
   const [filterState, setFilterState] = useState<string>(globalState || "All States");
   const itemsPerPage = 50;
 
-  // Sync with global location on mount
+  // Initial Sort
   useEffect(() => {
     if (userLat && userLon) {
-      const withDistance = ALL_MANDIS.map(m => ({
-        ...m,
-        distance: calculateDistance(userLat, userLon, m.lat, m.lon)
-      }));
-      setSortedMandis(withDistance.sort((a, b) => a.distance - b.distance));
+      setCenterLoc({ name: globalCity || "My Location", lat: userLat, lon: userLon });
     }
-  }, [userLat, userLon]);
+  }, [userLat, userLon, globalCity]);
+
+  // Unified Sorting & Combining Logic
+  useEffect(() => {
+    const combined = [...extraMandis, ...ALL_MANDIS];
+    // Deduplicate by name
+    const unique = Array.from(new Map(combined.map(m => [m.name.toLowerCase(), m])).values());
+    
+    const withDistance = unique.map(m => ({
+      ...m,
+      distance: calculateDistance(centerLoc.lat, centerLoc.lon, m.lat, m.lon)
+    }));
+
+    setSortedMandis(withDistance);
+  }, [centerLoc, extraMandis]);
 
   const handleManualLocation = async () => {
     if (!manualCity.trim()) return;
@@ -114,15 +125,11 @@ function MandiPage() {
     try {
       const coords = await geocodeCity({ data: manualCity });
       setCenterLoc({ name: manualCity, ...coords });
+      
       const liveResults = await fetchLiveMandiPrices({ data: manualCity });
-      setSortedMandis(prev => {
-        const combined = [...liveResults, ...prev];
-        const unique = Array.from(new Map(combined.map(m => [m.name.toLowerCase(), m])).values());
-        return unique.map(m => ({ 
-          ...m, 
-          distance: calculateDistance(coords.lat, coords.lon, m.lat || 0, m.lon || 0) 
-        }));
-      });
+      if (liveResults && liveResults.length > 0) {
+        setExtraMandis(prev => [...liveResults, ...prev]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -133,37 +140,17 @@ function MandiPage() {
 
   const toggleExpand = (id: string) => setExpandedMandis(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
-  useEffect(() => {
-    const runSort = (lat: number, lon: number) => {
-      const withDist = ALL_MANDIS.map(m => ({
-        ...m,
-        distance: calculateDistance(lat, lon, m.lat, m.lon)
-      }));
-      setSortedMandis(withDist);
-    };
-
-    if (centerLoc.name === "My Current GPS" && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(p => runSort(p.coords.latitude, p.coords.longitude), () => runSort(28.61, 77.20));
-    } else runSort(centerLoc.lat, centerLoc.lon);
-  }, [centerLoc]);
-
-  // Reset to page 1 whenever search or filters change to avoid showing empty pages
+  // Reset to page 1 whenever search or filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [search, manualCity, filterState, sortBy, centerLoc]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    const cityS = manualCity.trim().toLowerCase();
     
     let list = sortedMandis.filter(m => {
       const matchState = filterState === "All States" || m.state === filterState;
       if (!matchState) return false;
-
-      // Filter by the location/city input instantly as they type
-      if (cityS && !m.district.toLowerCase().includes(cityS) && !m.state.toLowerCase().includes(cityS)) {
-        return false;
-      }
 
       // Filter by the crop/search input instantly as they type
       if (!s) return true;
@@ -181,7 +168,7 @@ function MandiPage() {
     else if (sortBy === 'price_high') list.sort((a, b) => (b.commodities?.[0]?.price || 0) - (a.commodities?.[0]?.price || 0));
     
     return list;
-  }, [sortedMandis, search, manualCity, sortBy, filterState]);
+  }, [sortedMandis, search, sortBy, filterState]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search, MapPin, Landmark, ShieldCheck, Tractor, ExternalLink, Leaf, Loader2, Sparkles } from "lucide-react";
 import { createServerFn } from "@tanstack/react-start";
-import { GoogleGenAI, SchemaType } from "@google/genai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { INDIAN_SCHEMES } from "../data/schemes";
 
 type SchemesSearch = {
@@ -43,9 +43,9 @@ const getAISchemes = createServerFn({ method: "POST" })
       const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey || apiKey.includes("your-api-key")) return [];
 
-      const genAI = new GoogleGenAI(apiKey);
+      const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         generationConfig: { 
           responseMimeType: "application/json",
           responseSchema: {
