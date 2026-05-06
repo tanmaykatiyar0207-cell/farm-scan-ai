@@ -37,7 +37,8 @@ export function getMockResult() {
 }
 
 export const analyzeWithGemini = createServerFn({ method: "POST" })
-  .handler(async ({ data: { base64Data, mimeType, location } }: { data: { base64Data: string; mimeType: string; location: string } }) => {
+  .validator((data: { base64Data: string; mimeType: string; location: string }) => data)
+  .handler(async ({ data: { base64Data, mimeType, location } }) => {
     // Read from process.env on server
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     

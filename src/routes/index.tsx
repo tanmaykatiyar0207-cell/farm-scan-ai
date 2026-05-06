@@ -14,7 +14,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Farmassist AI — Check crop health in seconds" },
-      { name: "description", content: "Upload a photo of your crop and get instant AI-powered disease diagnosis, severity and treatment." },
+      { name: "description", content: "Upload a photo of your crop and let AI diagnose disease in seconds." },
       { property: "og:title", content: "Farmassist AI — Check crop health in seconds" },
       { property: "og:description", content: "Upload a photo and get instant AI-powered diagnosis." },
     ],
@@ -526,3 +526,5 @@ function HomePage() {
     </div>
   );
 }
+
+export default HomePage;
