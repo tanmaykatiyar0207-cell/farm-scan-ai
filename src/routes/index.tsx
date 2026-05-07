@@ -424,32 +424,32 @@ function HomePage() {
       <section className="relative overflow-hidden bg-hero-gradient border-b border-border">
         <div className="absolute -top-[20%] -left-[10%] h-[50%] w-[50%] animate-pulse rounded-full bg-primary/10 blur-[100px]" />
         <div className="absolute top-[20%] -right-[10%] h-[40%] w-[40%] animate-pulse rounded-full bg-primary-soft/20 blur-[100px]" style={{ animationDelay: "2s" }} />
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
-          <div className="relative z-10">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/70 px-4 py-1.5 text-xs font-bold text-primary">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 md:grid-cols-2 md:py-24">
+          <div className="relative z-10 text-center md:text-left">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/70 px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-bold text-primary">
               <Sparkles className="h-3.5 w-3.5" /> Next-Gen AI Vision Enabled
             </span>
-            <h1 className="mt-6 font-display text-5xl font-extrabold leading-tight text-foreground sm:text-6xl md:text-7xl">
+            <h1 className="mt-4 md:mt-6 font-display text-4xl font-extrabold leading-tight text-foreground sm:text-6xl lg:text-7xl">
               Check Crop <br />
               <span className="bg-gradient-to-r from-primary to-primary-soft bg-clip-text text-transparent">Health Instantly.</span>
             </h1>
-            <p className="mt-6 max-w-md text-base text-muted-foreground sm:text-xl leading-relaxed">
+            <p className="mt-4 md:mt-6 max-w-md mx-auto md:mx-0 text-sm md:text-xl text-muted-foreground leading-relaxed">
               The world's most accessible plant pathologist. Diagnosis, severity, and treatment in under 5 seconds.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link to="/analyze" className="inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-card transition-all hover:scale-[1.05] hover:shadow-xl">
-                <Camera className="h-6 w-6" /> Analyze Your Crop
+            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+              <Link to="/analyze" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-card transition-all hover:scale-[1.05] hover:shadow-xl">
+                <Camera className="h-5 w-5 md:h-6 md:h-6" /> Analyze Your Crop
               </Link>
-              <Link to="/library" className="inline-flex items-center gap-3 rounded-full border border-border bg-card px-8 py-4 text-base font-bold text-foreground hover:bg-accent transition-all">
-                Disease Library <ArrowRight className="h-5 w-5" />
+              <Link to="/heatmap" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full border border-border bg-card px-8 py-4 text-base font-bold text-foreground hover:bg-accent transition-all">
+                <Navigation className="h-5 w-5" /> Explore CropWatch
               </Link>
             </div>
-            <div className="mt-10 flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-              <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> Secure</span>
+            <div className="mt-8 md:mt-10 flex items-center justify-center md:justify-start gap-6 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+              <span className="flex items-center gap-1.5 md:gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> Secure</span>
               <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Real-time</span>
             </div>
           </div>
-          <div className="relative animate-in fade-in zoom-in duration-1000">
+          <div className="relative animate-in fade-in zoom-in duration-1000 hidden md:block">
             <div className="absolute -inset-4 rounded-[40px] bg-primary/20 blur-3xl transition-all duration-500 hover:bg-primary/30" />
             <img
               src={heroImg}
@@ -458,7 +458,7 @@ function HomePage() {
               height={1024}
               className="relative aspect-[4/3] w-full rounded-[40px] object-cover shadow-2xl transition-transform duration-700 hover:scale-[1.02]"
             />
-            <div className="absolute -bottom-8 left-8 right-8 rounded-3xl border border-border/50 bg-card/80 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 sm:left-auto sm:right-8 sm:w-72">
+            <div className="absolute -bottom-8 right-8 rounded-3xl border border-border/50 bg-card/80 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 w-72">
               <div className="flex items-center gap-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/12 text-primary">
                   <Leaf className="h-6 w-6" />
@@ -473,47 +473,103 @@ function HomePage() {
         </div>
       </section>
       <LocationControl />
-      <section className="mx-auto max-w-6xl px-4 py-20 border-b border-border">
-        <div className="mb-10">
-          <h2 className="font-display text-3xl font-extrabold sm:text-4xl">Regional Crop Advisory</h2>
-          <p className="text-base text-muted-foreground mt-2">AI-powered weather insights and field tips for your area</p>
+      
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-20 border-b border-border">
+        <div className="mb-8 md:mb-10 text-center md:text-left">
+          <h2 className="font-display text-2xl md:text-4xl font-extrabold">Regional Crop Advisory</h2>
+          <p className="text-sm md:text-base text-muted-foreground mt-2">AI-powered weather insights and field tips for your area</p>
         </div>
         <WeatherReco state={state} />
       </section>
-      <AboutSection />
-      <section className="mx-auto max-w-6xl px-4 py-20 border-b border-border">
-        <div className="text-center">
-          <h2 className="font-display text-4xl font-extrabold sm:text-5xl">How it works</h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">Three simple steps to secure your harvest. No jargon. No waiting.</p>
+
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-20 border-b border-border overflow-hidden">
+        <div className="grid gap-12 md:grid-cols-2 items-center">
+          <div className="order-2 md:order-1">
+            <div className="relative aspect-square md:aspect-video rounded-[40px] overflow-hidden border border-border shadow-2xl group">
+              <div className="absolute inset-0 bg-primary/5 animate-pulse" />
+              <img 
+                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1000" 
+                className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" 
+                alt="Map Preview"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6">
+                <div className="glass-morphism rounded-3xl p-5 shadow-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="flex h-2 w-2 rounded-full bg-destructive animate-ping" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live Outbreak Feed</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold">Late Blight</span>
+                      <span className="text-[10px] font-black text-destructive bg-destructive/10 px-2 py-0.5 rounded">High Risk</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Nashik, Maharashtra</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">2m ago</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="order-1 md:order-2 text-center md:text-left">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+              <Navigation className="h-3.5 w-3.5" /> Real-time Tracking
+            </span>
+            <h2 className="mt-6 font-display text-3xl md:text-5xl font-extrabold leading-tight">
+              Visualize the <br/>
+              <span className="text-primary">Spread in Real-time</span>
+            </h2>
+            <p className="mt-6 text-base md:text-lg text-muted-foreground leading-relaxed">
+              CropWatch uses community data to create a live heatmap of crop diseases across India. Stay ahead of outbreaks in your district and protect your yield before the infection arrives.
+            </p>
+            <div className="mt-10">
+              <Link to="/heatmap" className="inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-card transition-all hover:scale-[1.05]">
+                View Live Map <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
+          </div>
         </div>
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
+      </section>
+
+      <AboutSection />
+
+
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-20 border-b border-border">
+        <div className="text-center">
+          <h2 className="font-display text-3xl md:text-5xl font-extrabold">How it works</h2>
+          <p className="mt-4 text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto">Three simple steps to secure your harvest. No jargon. No waiting.</p>
+        </div>
+        <div className="mt-12 md:mt-16 grid gap-6 md:grid-cols-3">
           {[
             { n: "01", tText: "Upload Image", d: "Snap or upload a clear photo of the affected leaf or crop.", Icon: Camera },
             { n: "02", tText: "AI Analysis", d: "Our model inspects the image and identifies the issue.", Icon: Sparkles },
             { n: "03", tText: "Get Treatment", d: "Receive severity, prevention and treatment guidance instantly.", Icon: Leaf },
           ].map(({ n, tText, d, Icon }) => (
-            <div key={n} className="group relative rounded-[32px] border border-border bg-card p-10 shadow-soft transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:border-primary/40">
-              <div className="absolute inset-0 rounded-[32px] bg-gradient-to-b from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div key={n} className="group relative rounded-[28px] md:rounded-[32px] border border-border bg-card p-8 md:p-10 shadow-soft transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:border-primary/40">
+              <div className="absolute inset-0 rounded-[28px] md:rounded-[32px] bg-gradient-to-b from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               <div className="relative flex items-center justify-between">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-500 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
-                  <Icon className="h-7 w-7" />
+                <span className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl bg-primary/10 text-primary transition-all duration-500 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Icon className="h-6 w-6 md:h-7 md:h-7" />
                 </span>
-                <span className="font-display text-5xl font-black text-primary/5 group-hover:text-primary/10 transition-colors">{n}</span>
+                <span className="font-display text-4xl md:text-5xl font-black text-primary/5 group-hover:text-primary/10 transition-colors">{n}</span>
               </div>
-              <h3 className="mt-8 font-display text-2xl font-bold">{tText}</h3>
-              <p className="mt-3 text-base text-muted-foreground leading-relaxed">{d}</p>
+              <h3 className="mt-6 md:mt-8 font-display text-xl md:text-2xl font-bold">{tText}</h3>
+              <p className="mt-2 md:mt-3 text-sm md:text-base text-muted-foreground leading-relaxed">{d}</p>
             </div>
           ))}
         </div>
       </section>
-      <section className="mx-auto max-w-6xl px-4 py-20">
-        <div className="relative overflow-hidden rounded-[40px] bg-primary p-10 md:p-20 text-center text-primary-foreground shadow-2xl">
+
+      <section className="mx-auto max-w-6xl px-4 py-12 md:py-20">
+        <div className="relative overflow-hidden rounded-[32px] md:rounded-[40px] bg-primary p-8 md:p-20 text-center text-primary-foreground shadow-2xl">
           <div className="absolute inset-0 bg-hero-gradient opacity-20 pointer-events-none" />
           <div className="relative z-10 max-w-2xl mx-auto">
-            <h3 className="font-display text-4xl font-black sm:text-5xl">Ready to secure your harvest?</h3>
-            <p className="mt-6 text-lg text-primary-foreground/80 font-medium">Join thousands of farmers using AI to protect their crops. Your first 20 scans every day are on us.</p>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Link to="/analyze" className="inline-flex items-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-bold text-primary shadow-xl hover:scale-[1.05] transition-all">
+            <h3 className="font-display text-3xl md:text-5xl font-black">Ready to secure your harvest?</h3>
+            <p className="mt-4 md:mt-6 text-base md:text-lg text-primary-foreground/80 font-medium">Join thousands of farmers using AI to protect their crops. Your first 20 scans every day are on us.</p>
+            <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4">
+              <Link to="/analyze" className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full bg-white px-10 py-4 md:py-5 text-base md:text-lg font-bold text-primary shadow-xl hover:scale-[1.05] transition-all">
                 Analyze Crop Now <ArrowRight className="h-5 w-5" />
               </Link>
             </div>
@@ -528,3 +584,4 @@ function HomePage() {
 }
 
 export default HomePage;
+

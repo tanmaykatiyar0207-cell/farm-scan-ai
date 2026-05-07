@@ -4,6 +4,7 @@ import { Search, MapPin, Landmark, ShieldCheck, Tractor, ExternalLink, Leaf, Loa
 import { createServerFn } from "@tanstack/react-start";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { INDIAN_SCHEMES } from "../data/schemes";
+import { getGeminiModel } from "@/lib/gemini";
 
 type SchemesSearch = {
   location?: string;
@@ -40,33 +41,26 @@ const CATEGORIES = [
 const getAISchemes = createServerFn({ method: "POST" })
   .handler(async ({ data: location }: { data: string }) => {
     try {
-      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (!apiKey || apiKey.includes("your-api-key")) return [];
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: { 
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: SchemaType.ARRAY,
-            items: {
-              type: SchemaType.OBJECT,
-              properties: {
-                id: { type: SchemaType.STRING },
-                title: { type: SchemaType.STRING },
-                category: { type: SchemaType.STRING },
-                description: { type: SchemaType.STRING },
-                states: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                link: { type: SchemaType.STRING }
-              },
-              required: ["id", "title", "category", "description", "states", "link"]
-            }
+      const model = getGeminiModel({
+        systemInstruction: "You are an agricultural policy expert. Your goal is to find the most relevant and current government schemes for farmers in specific Indian states. Focus on subsidies, insurance, and direct benefit transfers (DBT).",
+        responseSchema: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              id: { type: SchemaType.STRING },
+              title: { type: SchemaType.STRING },
+              category: { type: SchemaType.STRING, enum: ["financial", "insurance", "equipment"] },
+              description: { type: SchemaType.STRING },
+              states: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+              link: { type: SchemaType.STRING }
+            },
+            required: ["id", "title", "category", "description", "states", "link"]
           }
         }
       });
       
-      const prompt = `Find 5-8 NEW or STATE-SPECIFIC agricultural schemes for ${location}, India (2024-2026). Return ONLY JSON array of { id, title, category, description, states: [], link }.`;
+      const prompt = `Find 5-8 NEW or STATE-SPECIFIC agricultural schemes for ${location}, India (2024-2026). Include both national schemes applicable in ${location} and state-exclusive ones.`;
       
       const result = await model.generateContent(prompt);
       return JSON.parse(result.response.text() || "[]");
@@ -75,6 +69,7 @@ const getAISchemes = createServerFn({ method: "POST" })
       return [];
     }
   });
+
 
 function SchemesPage() {
   const navigate = useNavigate({ from: "/schemes" });

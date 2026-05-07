@@ -128,29 +128,48 @@ function HeatmapPage() {
   const markersRef = useRef<any>(null);
 
   useEffect(() => {
-    if (loading || !mapContainerRef.current) return;
+    if (!mapContainerRef.current) return;
 
     let resizeObserver: ResizeObserver | null = null;
 
-    const initMap = () => {
-      const L = (window as any).L;
-      if (!L || !L.heatLayer || !L.markerClusterGroup) {
-        console.log("LEAFLET_RETRY: Scripts not ready yet...");
-        const timer = setTimeout(initMap, 300);
-        return () => clearTimeout(timer);
-      }
+    const loadScript = (src: string) => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve(true);
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
+    };
 
-      // Cleanup existing map if it exists (safety for React 18 Strict Mode)
-      if (mapRef.current) {
-        try {
+    const initMap = async () => {
+      try {
+        // Force sequential loading to ensure plugins find 'L'
+        if (!(window as any).L) {
+          await loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js");
+        }
+        await Promise.all([
+          loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"),
+          loadScript("https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/leaflet.markercluster.js")
+        ]);
+
+        const L = (window as any).L;
+        if (!L || !L.heatLayer || !L.markerClusterGroup) {
+          setTimeout(initMap, 500);
+          return;
+        }
+
+        // Cleanup existing map
+        if (mapRef.current) {
           mapRef.current.remove();
           mapRef.current = null;
-        } catch (e) {
-          console.warn("LEAFLET_CLEANUP_WARN:", e);
         }
-      }
 
-      try {
         const sw = L.latLng(6.0, 68.0);
         const ne = L.latLng(38.0, 98.0);
         const bounds = L.latLngBounds(sw, ne);
@@ -164,25 +183,22 @@ function HeatmapPage() {
           maxBounds: bounds,
           maxBoundsViscosity: 1.0,
           preferCanvas: true,
-          updateWhenIdle: true, // Performance boost
-          updateWhenZooming: false // Smoother zoom
+          updateWhenIdle: true,
+          updateWhenZooming: false
         });
 
         mapRef.current = m;
 
-        // 1. Base Layer
         L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png", {
           attribution: '© CARTO',
         }).addTo(m);
 
-        // 2. India Mask
         const worldCoords = [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]];
         const indiaHole = [[37.5, 68], [37.5, 97], [8, 97], [8, 68], [37.5, 68]];
         L.polygon([worldCoords, indiaHole], {
           color: '#000', weight: 0, fillColor: '#000', fillOpacity: 0.25, interactive: false
         }).addTo(m);
 
-        // 3. Labels
         L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
           opacity: 0.8
         }).addTo(m);
@@ -203,7 +219,6 @@ function HeatmapPage() {
           }
         }).addTo(m);
 
-        // Automatic Resize Handling
         resizeObserver = new ResizeObserver(() => {
           if (mapRef.current) {
             mapRef.current.invalidateSize();
@@ -211,9 +226,8 @@ function HeatmapPage() {
         });
         resizeObserver.observe(mapContainerRef.current);
 
-        // Initial Size Check
         setTimeout(() => {
-          m.invalidateSize();
+          if (mapRef.current) mapRef.current.invalidateSize();
         }, 100);
 
         updateHeatmap();
@@ -222,10 +236,9 @@ function HeatmapPage() {
       }
     };
 
-    const cleanup = initMap();
+    initMap();
 
     return () => {
-      if (typeof cleanup === 'function') cleanup();
       if (resizeObserver) resizeObserver.disconnect();
       if (mapRef.current) {
         mapRef.current.remove();
@@ -351,116 +364,122 @@ function HeatmapPage() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col bg-[#fefae0]/10 overflow-hidden font-sans">
-      <div className="z-20 bg-white border-b border-border/50 px-6 py-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary shadow-lg shadow-primary/20 p-2.5 rounded-2xl text-white">
-            <MapIcon className="h-6 w-6" />
+      <div className="z-20 bg-white border-b border-border/50 px-4 md:px-6 py-3 md:py-4 shadow-sm flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="bg-primary shadow-lg shadow-primary/20 p-2 md:p-2.5 rounded-xl md:rounded-2xl text-white">
+            <MapIcon className="h-5 w-5 md:h-6 md:h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight font-display text-gray-900 leading-tight">CropWatch</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">India Live Data Feed</p>
+            <h1 className="text-lg md:text-2xl font-black tracking-tight font-display text-gray-900 leading-tight">CropWatch</h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <p className="text-[9px] md:text-[11px] font-bold text-muted-foreground uppercase tracking-wider">India Live Feed</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <form onSubmit={handleSearch} className="relative group hidden sm:block">
+        <div className="flex items-center gap-2 md:gap-3">
+          <form onSubmit={handleSearch} className="relative group hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
             <input 
               type="text" 
-              placeholder="Search city or state..." 
+              placeholder="Search city..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all w-64 font-medium"
+              className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all w-48 lg:w-64 font-medium"
             />
           </form>
           <button 
             onClick={handleLocateMe}
-            className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-gray-600 shadow-sm"
+            className="p-2 md:p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-gray-600 shadow-sm"
           >
-            <MapPin className="h-5 w-5" />
+            <MapPin className="h-4 w-4 md:h-5 md:h-5" />
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 relative bg-gray-100">
-          <div className="absolute top-4 left-4 z-[400] space-y-4 w-full max-w-[calc(100%-32px)]">
-            <div className="flex flex-wrap gap-2">
-              <div className="bg-white/90 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-white flex gap-1">
-                {CROPS.map((crop) => (
-                  <button
-                    key={crop}
-                    onClick={() => setFilteredCrop(crop)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                      filteredCrop === crop
-                        ? "bg-primary text-white shadow-lg shadow-primary/30"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {crop}
-                  </button>
-                ))}
+          <div className="absolute top-3 left-0 right-0 z-[400] px-4 space-y-3 pointer-events-none">
+            <div className="flex flex-col gap-2 pointer-events-auto">
+              <div className="flex overflow-x-auto no-scrollbar gap-1.5 pb-1">
+                <div className="bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-xl border border-white flex flex-nowrap gap-1">
+                  {CROPS.map((crop) => (
+                    <button
+                      key={crop}
+                      onClick={() => setFilteredCrop(crop)}
+                      className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${
+                        filteredCrop === crop
+                          ? "bg-primary text-white shadow-lg shadow-primary/30"
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {crop}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="bg-white/90 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-white flex gap-1">
-                {TIME_RANGES.map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setTimeRange(range)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                      timeRange === range
-                        ? "bg-gray-800 text-white"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
-                  >
-                    {range}
-                  </button>
-                ))}
+              <div className="flex overflow-x-auto no-scrollbar gap-1.5">
+                <div className="bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-xl border border-white flex flex-nowrap gap-1">
+                  {TIME_RANGES.map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${
+                        timeRange === range
+                          ? "bg-gray-800 text-white"
+                          : "text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
+
           <div ref={mapContainerRef} className="h-full w-full z-0" />
 
-          <div className="absolute bottom-6 left-6 z-[400] bg-white/90 backdrop-blur-md border border-white/50 p-4 rounded-3xl shadow-2xl min-w-[160px]">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 mb-3">Intensity Scale</h4>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-3 w-3 rounded-full bg-red-500 shadow-lg shadow-red-200" />
-                  <span className="text-xs font-bold text-gray-700">High Risk</span>
+          <div className="absolute bottom-6 left-4 md:left-6 z-[400] bg-white/90 backdrop-blur-md border border-white/50 p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-2xl min-w-[140px] md:min-w-[160px]">
+            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 mb-2 md:mb-3">Intensity Scale</h4>
+            <div className="space-y-2 md:space-y-3">
+              <div className="flex items-center justify-between gap-3 md:gap-4">
+                <div className="flex items-center gap-2 md:gap-2.5">
+                  <span className="h-2.5 w-2.5 md:h-3 md:w-3 rounded-full bg-red-500 shadow-lg shadow-red-200" />
+                  <span className="text-[10px] md:text-xs font-bold text-gray-700">High Risk</span>
                 </div>
-                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">{stats.high}</span>
+                <span className="text-[9px] md:text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">{stats.high}</span>
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-3 w-3 rounded-full bg-amber-500 shadow-lg shadow-amber-200" />
-                  <span className="text-xs font-bold text-gray-700">Medium</span>
+              <div className="flex items-center justify-between gap-3 md:gap-4">
+                <div className="flex items-center gap-2 md:gap-2.5">
+                  <span className="h-2.5 w-2.5 md:h-3 md:w-3 rounded-full bg-amber-500 shadow-lg shadow-amber-200" />
+                  <span className="text-[10px] md:text-xs font-bold text-gray-700">Medium</span>
                 </div>
-                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">{stats.medium}</span>
+                <span className="text-[9px] md:text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">{stats.medium}</span>
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-3 w-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-200" />
-                  <span className="text-xs font-bold text-gray-700">Low Risk</span>
+              <div className="flex items-center justify-between gap-3 md:gap-4">
+                <div className="flex items-center gap-2 md:gap-2.5">
+                  <span className="h-2.5 w-2.5 md:h-3 md:w-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-200" />
+                  <span className="text-[10px] md:text-xs font-bold text-gray-700">Low Risk</span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">{stats.low}</span>
+                <span className="text-[9px] md:text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">{stats.low}</span>
               </div>
             </div>
             
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden flex">
+            <div className="mt-3 md:mt-4 pt-2 md:pt-3 border-t border-gray-100">
+              <div className="h-1 md:h-1.5 w-full bg-gray-100 rounded-full overflow-hidden flex">
                 <div style={{ width: `${stats.highPct}%` }} className="bg-red-500 h-full" />
                 <div style={{ width: `${stats.mediumPct}%` }} className="bg-amber-500 h-full" />
                 <div style={{ width: `${stats.lowPct}%` }} className="bg-emerald-500 h-full" />
               </div>
-              <p className="text-[9px] text-gray-400 mt-2 font-bold text-center uppercase tracking-tight">Community Severity Mix</p>
+              <p className="text-[8px] md:text-[9px] text-gray-400 mt-1.5 md:mt-2 font-bold text-center uppercase tracking-tight">Community Mix</p>
             </div>
           </div>
         </div>
+
 
         <div className="hidden xl:flex w-[380px] flex-col bg-white border-l border-border/50">
           <div className="p-6 border-b border-border/50 bg-gray-50/30">
@@ -548,6 +567,8 @@ function HeatmapPage() {
       </div>
       
       <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 20px; }
@@ -564,3 +585,4 @@ function HeatmapPage() {
     </div>
   );
 }
+

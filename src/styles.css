@@ -116,13 +116,21 @@
 
 @layer base {
   * { border-color: var(--color-border); }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
   }
-  h1, h2, h3, h4, h5 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  h1, h2, h3, h4, h5 { 
+    font-family: var(--font-display); 
+    letter-spacing: -0.02em; 
+    line-height: 1.2;
+  }
 }
 
 @layer utilities {
@@ -132,4 +140,16 @@
   }
   .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-card { box-shadow: var(--shadow-card); }
+  
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .glass-morphism {
+    @apply bg-background/80 backdrop-blur-xl border border-white/20;
+  }
 }
+

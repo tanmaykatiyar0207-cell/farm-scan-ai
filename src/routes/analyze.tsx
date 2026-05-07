@@ -57,6 +57,7 @@ function AnalyzePage() {
   const [locating, setLocating] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
   const [locDetected, setLocDetected] = useState(false);
+  const [fileName, setFileName] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -158,6 +159,7 @@ function AnalyzePage() {
     try {
       const compressed = await compressImage(file);
       setPreview(compressed);
+      setFileName(file.name);
     } catch (err) {
       console.error("Compression failed:", err);
       // Fallback to raw if compression fails
@@ -194,10 +196,10 @@ function AnalyzePage() {
         await new Promise((res) => setTimeout(res, 2200));
       }
 
-      navigate({ to: "/results", search: { location: location || "Unknown" } });
+      navigate({ to: "/results", search: { location: location || "Unknown", hint: fileName } });
     } catch (error) {
       console.error("Failed to upload image to n8n:", error);
-      navigate({ to: "/results", search: { location: location || "Unknown" } });
+      navigate({ to: "/results", search: { location: location || "Unknown", hint: fileName } });
     } finally {
       setLoading(false);
     }

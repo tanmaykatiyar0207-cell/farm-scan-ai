@@ -3,15 +3,16 @@ import { BookOpen, CheckCircle2, AlertTriangle, Leaf, Loader2 } from "lucide-rea
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
-import { analyzeWithGemini, getMockResult } from "@/lib/gemini";
+import { analyzeWithGemini, getMockResult, type AnalysisResult } from "@/lib/gemini";
 import { transliterate } from "@/lib/transliterate";
 import diseaseImgFallback from "@/assets/disease-leafspot.jpg";
 
-type ResultsSearch = { location?: string };
+type ResultsSearch = { location?: string; hint?: string };
 
 export const Route = createFileRoute("/results")({
   validateSearch: (search: Record<string, unknown>): ResultsSearch => ({
     location: (search.location as string) || "Unknown",
+    hint: (search.hint as string) || "",
   }),
   head: () => ({
     meta: [
@@ -32,16 +33,21 @@ function ResultsPage() {
   const search = Route.useSearch();
   const location = search.location || "Unknown";
   const { i18n } = useTranslation();
-  const [result, setResult] = useState<any>(null);
-  const [displayResult, setDisplayResult] = useState<any>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [displayResult, setDisplayResult] = useState<AnalysisResult | null>(null);
   const [imgUrl, setImgUrl] = useState<string>(diseaseImgFallback);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transliterating, setTransliterating] = useState(false);
+  const [hasRun, setHasRun] = useState(false);
+
 
   useEffect(() => {
+    if (hasRun) return;
+    
     const runAnalysis = async () => {
       try {
+        setHasRun(true);
         let currentImg = sessionStorage.getItem("pendingCropImage");
         let analysisB64 = "";
         let analysisMime = "image/jpeg";
@@ -91,19 +97,22 @@ function ResultsPage() {
           return;
         }
 
+        const hint = search.hint || "";
+
         // Perform AI analysis on the SERVER
         const analysis = await analyzeWithGemini({ 
           data: { 
             base64Data: analysisB64, 
             mimeType: analysisMime, 
-            location 
+            location,
+            hint
           } 
         });
         
         setResult(analysis);
 
         // --- HACKATHON INTEGRATION: Push to Heatmap (localStorage feed) ---
-        if (analysis && !analysis.error) {
+        if (analysis && !analysis.error && analysis.is_crop_detected && analysis.confidence > 50) {
           const lat = sessionStorage.getItem("pendingLat");
           const lon = sessionStorage.getItem("pendingLon");
           
@@ -130,7 +139,8 @@ function ResultsPage() {
         
       } catch (err: any) {
         console.error("Critical failure in analysis pipeline:", err);
-        setResult(getMockResult());
+        const hint = search.hint || "";
+        setResult(getMockResult(hint));
       } finally {
         setLoading(false);
       }
@@ -204,14 +214,51 @@ function ResultsPage() {
 
   const res = displayResult || result;
   if (!res) return null;
+
+  // Handle case where no crop is detected (False Positive removal)
+  if (!res.is_crop_detected) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center px-4">
+        <div className="relative">
+          <div className="absolute inset-0 animate-ping rounded-full bg-destructive/20" />
+          <AlertTriangle className="relative h-16 w-16 text-destructive" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="font-display text-2xl font-bold">No Crop Detected</h2>
+          <p className="text-muted-foreground max-w-sm mx-auto">
+            Our AI couldn't identify a valid plant or crop in this image. 
+            Please ensure you're taking a clear, close-up photo of a leaf or plant.
+          </p>
+        </div>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <Link to="/analyze" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg hover:brightness-110 transition-all">
+            Try again
+          </Link>
+          <Link to="/" className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold hover:bg-accent transition-all">
+            Go Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
   
   const sev: string = res.severity || "Medium";
+  const isLowConfidence = res.confidence < 65;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
       {transliterating && (
         <div className="mb-4 flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-2 text-xs font-semibold text-primary animate-pulse">
           <Loader2 className="h-3 w-3 animate-spin" /> Translating results to your script...
+        </div>
+      )}
+
+      {res.isFallback && (
+        <div className="mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4 flex gap-3 items-center">
+          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+          <p className="text-sm font-medium text-amber-700">
+            <span className="font-bold">Demo Mode Active:</span> API limits reached. Showing localized diagnostic simulations.
+          </p>
         </div>
       )}
       <div className="grid gap-6 md:grid-cols-[1.1fr_1fr]">
@@ -240,8 +287,20 @@ function ResultsPage() {
             Confidence: <span className="font-semibold text-foreground">{res.confidence}%</span>
           </p>
           <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${res.confidence}%` }} />
+            <div className={`h-full rounded-full transition-all ${isLowConfidence ? "bg-warning" : "bg-primary"}`} style={{ width: `${res.confidence}%` }} />
           </div>
+
+          {isLowConfidence && (
+            <div className="mt-4 rounded-xl bg-warning/10 border border-warning/20 p-3 flex gap-3 items-start">
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-warning uppercase tracking-wider">Low Confidence</p>
+                <p className="text-xs text-[oklch(0.45_0.15_70)] leading-tight mt-0.5">
+                  This diagnosis might be inaccurate due to image quality. For better results, take a clearer photo in good lighting.
+                </p>
+              </div>
+            </div>
+          )}
 
           {res.symptoms && (
             <div className="mt-6 rounded-2xl bg-primary/5 p-4 border border-primary/10">

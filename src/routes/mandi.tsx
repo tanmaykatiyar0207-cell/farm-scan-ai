@@ -7,8 +7,9 @@ import {
 } from "lucide-react";
 import { ALL_MANDIS, MandiEntry } from "@/lib/mandi_data";
 import { createServerFn } from "@tanstack/react-start";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { useLocation } from "@/lib/location";
+import { getGeminiModel } from "@/lib/gemini";
 
 export const Route = createFileRoute("/mandi")({
   head: () => ({
@@ -23,25 +24,44 @@ export const Route = createFileRoute("/mandi")({
 const fetchLiveMandiPrices = createServerFn({ method: "GET" })
   .handler(async ({ data: query }: { data: string }) => {
     try {
-      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (!apiKey || apiKey.includes("your-api-key")) {
-        console.warn("SERVER: Gemini API key missing or placeholder. Returning empty results.");
-        return [];
-      }
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        generationConfig: { responseMimeType: "application/json" }
+      const model = getGeminiModel({
+        model: "gemini-2.0-flash",
+        systemInstruction: "You are a market analyst specializing in Indian agriculture (Mandis). Provide realistic, estimated current market prices for commodities based on seasonal trends and recent data.",
+        responseSchema: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              id: { type: SchemaType.STRING },
+              name: { type: SchemaType.STRING },
+              state: { type: SchemaType.STRING },
+              district: { type: SchemaType.STRING },
+              lat: { type: SchemaType.NUMBER },
+              lon: { type: SchemaType.NUMBER },
+              commodities: {
+                type: SchemaType.ARRAY,
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    name: { type: SchemaType.STRING },
+                    price: { type: SchemaType.NUMBER },
+                    unit: { type: SchemaType.STRING },
+                    trend: { type: SchemaType.STRING, enum: ["up", "down"] }
+                  },
+                  required: ["name", "price", "unit", "trend"]
+                }
+              }
+            },
+            required: ["id", "name", "state", "district", "lat", "lon", "commodities"]
+          }
+        }
       });
       
-      const prompt = `Provide 3-5 realistic local mandi prices for ${query}, India. 
-      Return ONLY a JSON array of objects with fields: id (unique string), name (mandi name), state, district, lat (number), lon (number), commodities (array of { name, price, unit, trend }).`;
-      
+      const prompt = `Provide 3-5 realistic local mandi prices for ${query}, India.`;
       const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return JSON.parse(text || "[]");
+      return JSON.parse(result.response.text() || "[]");
     } catch (e) {
-      console.error("SERVER_FN_ERROR (fetchLiveMandiPrices):", e);
+      console.error("Mandi Fetch Error:", e);
       return []; 
     }
   });
@@ -49,25 +69,27 @@ const fetchLiveMandiPrices = createServerFn({ method: "GET" })
 const geocodeCity = createServerFn({ method: "GET" })
   .handler(async ({ data: city }: { data: string }) => {
     try {
-      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (!apiKey || apiKey.includes("your-api-key")) return { lat: 28.61, lon: 77.20 };
+      const model = getGeminiModel({
+        model: "gemini-2.0-flash",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            lat: { type: SchemaType.NUMBER },
+            lon: { type: SchemaType.NUMBER }
+          },
+          required: ["lat", "lon"]
+        }
+      });
       
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const prompt = `Return ONLY a JSON object with "lat" and "lon" for "${city}, India". Example: {"lat": 28.61, "lon": 77.20}`;
+      const prompt = `Geocode "${city}, India". Return the latitude and longitude.`;
       const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      
-      const jsonStart = text.indexOf("{");
-      const jsonEnd = text.lastIndexOf("}") + 1;
-      const cleanJson = text.substring(jsonStart, jsonEnd);
-      return JSON.parse(cleanJson || '{"lat": 28.61, "lon": 77.20}');
+      return JSON.parse(result.response.text() || '{"lat": 28.61, "lon": 77.20}');
     } catch (e) {
-      console.error("SERVER_FN_ERROR (geocodeCity):", e);
+      console.error("Geocoding Error:", e);
       return { lat: 28.61, lon: 77.20 };
     }
   });
+
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
